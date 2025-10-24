@@ -22,31 +22,82 @@ Comprehensive technical guide for the Property Management Application.
 ### System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client (Browser)                          │
-│                  React + TanStack Query                      │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ HTTP/REST
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Backend API (NestJS)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Properties   │  │   Tasks      │  │ External     │     │
-│  │   Module     │  │   Module     │  │ Services     │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────────────┘     │
-│         │                 │                                  │
-│         └─────────────────┼──────────────────────────────── │
-│                           ▼                                  │
-│                  ┌─────────────────┐                        │
-│                  │ Database Module │                        │
-│                  └────────┬────────┘                        │
-└───────────────────────────┼─────────────────────────────────┘
-                            ▼
-                  ┌──────────────────┐
-                  │   PostgreSQL     │
-                  │    Database      │
-                  └──────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Frontend Layer                                │
+│                   React + TanStack Query + Vite                       │
+│                                                                        │
+│  • Property Management    • Task Management    • Dashboard & Reports  │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │ REST API (HTTP/JSON)
+                               ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                     Backend Layer (NestJS)                            │
+│                                                                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐ │
+│  │ Properties   │  │    Tasks     │  │   External Services        │ │
+│  │   Module     │  │   Module     │  │       Module               │ │
+│  │              │  │              │  │                            │ │
+│  │ • CRUD ops   │  │ • CRUD ops   │  │ ┌────────────────────────┐ │ │
+│  │ • Filtering  │  │ • Assignment │  │ │  Integration Layer     │ │ │
+│  │ • Validation │  │ • Status     │  │ │                        │ │ │
+│  │ • Pagination │  │ • Filtering  │  │ │ • Hostaway Adapter     │ │ │
+│  └──────┬───────┘  └──────┬───────┘  │ │ • Operto Adapter       │ │ │
+│         │                 │           │ │ • Notion Adapter       │ │ │
+│         │                 │           │ │ • Email Service        │ │ │
+│         │                 │           │ │ • Storage Service      │ │ │
+│         └─────────────────┼───────────┤ └────────────────────────┘ │ │
+│                           │           │                            │ │
+│                           ▼           └────────────┬───────────────┘ │
+│                  ┌─────────────────┐               │                 │
+│                  │ Database Module │               │                 │
+│                  │   (TypeORM)     │               │                 │
+│                  └────────┬────────┘               │                 │
+└───────────────────────────┼────────────────────────┼─────────────────┘
+                            │                        │
+                            ▼                        ▼
+              ┌──────────────────────┐  ┌─────────────────────────────┐
+              │    PostgreSQL        │  │   Third-Party Services      │
+              │                      │  │                             │
+              │ • Properties Table   │  │ • Hostaway API (PMS)        │
+              │ • Tasks Table        │  │ • Operto Teams (Locks)      │
+              │ • Sync Logs          │  │ • Notion API (Tasks)        │
+              │ • Webhook Events     │  │ • Google Workspace          │
+              │ • Audit Trails       │  │ • Email (SendGrid/SES)      │
+              └──────────────────────┘  │ • Cloud Storage (S3)        │
+                                        └─────────────────────────────┘
 ```
+
+**External Services Integration Strategy:**
+
+| Service | Purpose | Integration Type | Data Flow |
+|---------|---------|------------------|-----------|
+| **Hostaway API** | Property & booking sync | REST API + Webhooks | Bidirectional sync of property data, bookings, guest info |
+| **Operto Teams** | Smart lock automation | REST API | Automated PIN generation, check-in/out coordination |
+| **Notion API** | Task sync & documentation | REST API | Task status sync, documentation updates |
+| **Google Workspace** | Email & collaboration | OAuth 2.0 + API | Email notifications, calendar integration |
+| **Email Service** | Notifications | SMTP/API | Task assignments, booking alerts, reports |
+| **Cloud Storage** | Documents & images | S3/Azure API | Property photos, contracts, inspection reports |
+
+**Architecture Principles for Scalability (1,000+ Properties):**
+
+1. **Adapter Pattern** - Each external service has its own adapter for easy replacement/updates
+2. **Queue System** - Background job processing for heavy operations (webhooks, sync)
+3. **Caching Layer** - Redis for frequently accessed data (property lists, availability)
+4. **Event-Driven** - Webhook handlers for real-time updates from external systems
+5. **Rate Limiting** - Respect API limits and implement retry mechanisms
+6. **Database Indexing** - Optimized queries for large datasets
+7. **Horizontal Scaling** - Stateless backend design for multiple instances
+
+**Data Flow Example (Hostaway Booking Sync):**
+1. New booking created in Hostaway
+2. Hostaway sends webhook to our system
+3. External Services Module receives webhook
+4. Validates and transforms data using Hostaway Adapter
+5. Properties Module updates property status
+6. Tasks Module auto-creates cleaning/preparation tasks
+7. Operto integration generates smart lock PIN
+8. Email service notifies team members
+9. Frontend reflects changes via real-time query invalidation
 
 ### Design Principles
 

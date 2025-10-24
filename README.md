@@ -24,7 +24,7 @@ A modern property and task management system for property managers and landlords
 docker-compose up -d
 
 # Access the application
-# 🌐 Frontend: http://localhost
+# 🌐 Frontend: http://localhost:8080
 # 🔌 Backend API: http://localhost:3000/api
 # 📖 Swagger Docs: http://localhost:3000/api/docs
 ```
