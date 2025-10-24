@@ -20,6 +20,10 @@ A modern property and task management system for property managers and landlords
 ### Option 1: Docker (Recommended) 🐳
 
 ```bash
+
+cd property_management_code_test
+cp .env.example .env
+
 # Start all services
 docker-compose up -d
 
